@@ -1,0 +1,23 @@
+{
+  "gnews": {
+    "query": "AI OR LLM OR \"AI agents\" OR \"generative AI\" OR \"enterprise AI\"",
+    "max_articles": 20
+  },
+  "x_trends": {
+    "woeid": 1,
+    "ai_keywords": [
+      "ai",
+      "gpt",
+      "llm",
+      "agents",
+      "openai",
+      "genai",
+      "deepseek",
+      "claude"
+    ],
+    "top_k_trends": 2
+  },
+  "cache": {
+    "file_path": "news_cache.json"
+  }
+}
