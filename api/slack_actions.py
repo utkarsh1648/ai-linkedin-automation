@@ -52,12 +52,15 @@ def task_handle_modal_submission(channel_id: str, ts: str, text: str, manual_url
     """Processes modal submission in background: prioritizes file uploads, then manual URL."""
     image_urls = []
     
+    # Priority 1: File Uploads
     if file_urls:
         logger.info(f"Processing {len(file_urls)} file uploads (Priority 1)...")
-        for furl in file_urls[:3]: # Limit to 3 as requested
+        for furl in file_urls[:3]: # Limit to 3
             public_url = download_slack_file(furl, config.SLACK_BOT_TOKEN)
             if public_url:
                 image_urls.append(public_url)
+    
+    # Priority 2: Manual URL (Only if no files uploaded)
     elif manual_url:
         logger.info(f"Using manual URL (Priority 2): {manual_url}")
         image_urls = [manual_url]
@@ -75,7 +78,7 @@ def update_slack_message(channel_id: str, ts: str, new_text: str, image_urls: li
     url = "https://slack.com/api/chat.update"
     headers = {
         "Authorization": f"Bearer {config.SLACK_BOT_TOKEN}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json; charset=utf-8"
     }
     
     blocks = [
@@ -182,7 +185,7 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
         if payload["type"] == "block_actions":
             action_data = payload["actions"][0]
             action_id = action_data["action_id"]
-            user = payload["user"]["username"]
+            user = payload.get("user", {}).get("username", payload.get("user", {}).get("name", "Unknown"))
             
             # 🔹 HANDLE INSTANT MODAL PREVIEW (When file is selected)
             if action_id == "file_input":
@@ -215,10 +218,15 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
             if action_id == "edit_post":
                 trigger_id = payload.get("trigger_id")
                 channel_id = payload.get("channel", {}).get("id")
-                ts = payload.get("message", {}).get("ts")
+                message = payload.get("message", {})
+                ts = message.get("ts")
                 
-                logger.info(f"Edit button clicked. TriggerID: {trigger_id}, MessageTS: {ts}")
+                logger.info(f"Edit button clicked by {user}. TriggerID: {trigger_id}, MessageTS: {ts}")
+                logger.info(f"Current state to pass to modal: text_length={len(post_text)}, image_count={len(current_image_urls)}")
                 
+                if not trigger_id:
+                    logger.error("No TriggerID found in payload! Are you clicking an old or system-generated message?")
+
                 # Offload to background task to ensure 200 OK reaches Slack in <3s
                 background_tasks.add_task(open_edit_modal, trigger_id, post_text, channel_id, ts, current_image_urls)
                 return PlainTextResponse("OK")

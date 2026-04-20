@@ -14,6 +14,17 @@ def get_edit_view(post_text: str, channel_id: str, ts: str, current_image_urls: 
     if isinstance(current_image_urls, str):
         current_image_urls = [current_image_urls] if current_image_urls else []
 
+    image_element = {
+        "type": "plain_text_input",
+        "action_id": "image_input",
+        "placeholder": {
+            "type": "plain_text",
+            "text": "Paste a public image URL here (Priority)..."
+        }
+    }
+    if current_image_urls and current_image_urls[0]:
+        image_element["initial_value"] = current_image_urls[0]
+
     blocks = [
         {
             "type": "input",
@@ -33,15 +44,7 @@ def get_edit_view(post_text: str, channel_id: str, ts: str, current_image_urls: 
             "type": "input",
             "block_id": "image_block",
             "optional": True,
-            "element": {
-                "type": "plain_text_input",
-                "initial_value": current_image_urls[0] if current_image_urls else "",
-                "action_id": "image_input",
-                "placeholder": {
-                    "type": "plain_text",
-                    "text": "Paste a public image URL here (Priority)..."
-                }
-            },
+            "element": image_element,
             "label": {
                 "type": "plain_text",
                 "text": "Option A: Manual Image URL"
@@ -108,7 +111,7 @@ def open_edit_modal(trigger_id: str, post_text: str, channel_id: str, ts: str, i
     url = "https://slack.com/api/views.open"
     headers = {
         "Authorization": f"Bearer {config.SLACK_BOT_TOKEN}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json; charset=utf-8"
     }
 
     view = get_edit_view(post_text, channel_id, ts, initial_image_urls)
@@ -130,7 +133,7 @@ def update_edit_modal(view_id: str, post_text: str, channel_id: str, ts: str, im
     url = "https://slack.com/api/views.update"
     headers = {
         "Authorization": f"Bearer {config.SLACK_BOT_TOKEN}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json; charset=utf-8"
     }
 
     view = get_edit_view(post_text, channel_id, ts, image_urls)
