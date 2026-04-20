@@ -10,7 +10,8 @@ def upload_to_imgbb(file_path: str) -> str:
     """
     Uploads a local file to ImgBB and returns the direct image URL.
     """
-    if not config.IMGBB_API_KEY:
+    imgbb_key = getattr(config, 'IMGBB_API_KEY', None)
+    if not imgbb_key:
         logger.warning("No IMGBB_API_KEY found. Falling back to local hosting.")
         return None
 
@@ -18,7 +19,7 @@ def upload_to_imgbb(file_path: str) -> str:
         url = "https://api.imgbb.com/1/upload"
         with open(file_path, "rb") as file:
             payload = {
-                "key": config.IMGBB_API_KEY,
+                "key": imgbb_key,
                 "image": file.read(),
             }
             res = requests.post(url, data=payload, timeout=20)
@@ -52,7 +53,7 @@ def download_slack_file(file_url: str, bot_token: str, base_url: str = None) -> 
                 f.write(chunk)
         
         # Priority: Try Cloud Hosting (ImgBB)
-        if config.IMGBB_API_KEY:
+        if getattr(config, 'IMGBB_API_KEY', None):
             cloud_url = upload_to_imgbb(local_path)
             if cloud_url:
                 logger.info(f"File uploaded to ImgBB: {cloud_url}")

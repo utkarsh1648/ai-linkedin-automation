@@ -11,6 +11,7 @@ class Config:
         self.BUFFER_TOKEN = os.getenv("BUFFER_TOKEN", "")
         self.CHANNEL_ID = os.getenv("CHANNEL_ID", "")
         self.BASE_PUBLIC_URL = os.getenv("BASE_PUBLIC_URL", "http://localhost:8000")
+        self.IMGBB_API_KEY = os.getenv("IMGBB_API_KEY", "")
         self.MEDIA_DIR = "media"
         
         self.NEWS_API_QUERIES = [
