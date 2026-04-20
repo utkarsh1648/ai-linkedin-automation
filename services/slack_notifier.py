@@ -9,7 +9,7 @@ def send_slack_notification(message: str) -> dict:
     url = "https://slack.com/api/chat.postMessage"
     headers = {
         "Authorization": f"Bearer {config.SLACK_BOT_TOKEN}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json; charset=utf-8"
     }
 
     payload = {

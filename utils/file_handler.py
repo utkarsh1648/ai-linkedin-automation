@@ -6,32 +6,66 @@ from config import config
 
 logger = logging.getLogger(__name__)
 
-def download_slack_file(file_url: str, bot_token: str) -> str:
+def upload_to_imgbb(file_path: str) -> str:
     """
-    Downloads a file from Slack using the bot token and saves it to the local media directory.
-    Returns the public URL for the file.
+    Uploads a local file to ImgBB and returns the direct image URL.
+    """
+    if not config.IMGBB_API_KEY:
+        logger.warning("No IMGBB_API_KEY found. Falling back to local hosting.")
+        return None
+
+    try:
+        url = "https://api.imgbb.com/1/upload"
+        with open(file_path, "rb") as file:
+            payload = {
+                "key": config.IMGBB_API_KEY,
+                "image": file.read(),
+            }
+            res = requests.post(url, data=payload, timeout=20)
+            res.raise_for_status()
+            data = res.json()
+            return data["data"]["url"]
+    except Exception as e:
+        logger.error(f"Error uploading to ImgBB: {e}")
+        return None
+
+def download_slack_file(file_url: str, bot_token: str, base_url: str = None) -> str:
+    """
+    Downloads a file from Slack as a temporary local copy, 
+    then optionally uploads to ImgBB for permanent hosting.
     """
     try:
-        # Create unique filename to avoid collisions
-        ext = file_url.split('.')[-1]
+        # Clean extension and prepare local path
+        ext = file_url.split('.')[-1].split('?')[0]
+        if len(ext) > 4: ext = "png"
         filename = f"{uuid.uuid4()}.{ext}"
         local_path = os.path.join(config.MEDIA_DIR, filename)
         
+        os.makedirs(config.MEDIA_DIR, exist_ok=True)
         headers = {"Authorization": f"Bearer {bot_token}"}
+        
         response = requests.get(file_url, headers=headers, stream=True, timeout=15)
         response.raise_for_status()
         
-        os.makedirs(config.MEDIA_DIR, exist_ok=True)
         with open(local_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-                
-        public_url = f"{config.BASE_PUBLIC_URL}/{config.MEDIA_DIR}/{filename}"
-        logger.info(f"File downloaded and saved to {local_path}. Public URL: {public_url}")
+        
+        # Priority: Try Cloud Hosting (ImgBB)
+        if config.IMGBB_API_KEY:
+            cloud_url = upload_to_imgbb(local_path)
+            if cloud_url:
+                logger.info(f"File uploaded to ImgBB: {cloud_url}")
+                return cloud_url
+
+        # Fallback: Local public URL (via dynamically captured base_url or Ngrok/Render fallback)
+        actual_base = base_url if base_url else config.BASE_PUBLIC_URL
+        public_url = f"{actual_base}/{config.MEDIA_DIR}/{filename}"
+        logger.info(f"Using local public URL: {public_url}")
         return public_url
         
     except Exception as e:
-        logger.error(f"Error downloading file from Slack: {e}")
+        logger.error(f"Error in file handling: {e}")
         return None
 
 def delete_local_file(public_url: str):
@@ -42,7 +76,6 @@ def delete_local_file(public_url: str):
         if not public_url:
             return
             
-        # Extract filename from public URL
         filename = public_url.split('/')[-1]
         local_path = os.path.join(config.MEDIA_DIR, filename)
         

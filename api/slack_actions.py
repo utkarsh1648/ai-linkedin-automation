@@ -48,25 +48,28 @@ def task_update_via_response_url(response_url: str, updated_text: str):
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to update via response url: {e}")
 
-def task_handle_modal_submission(channel_id: str, ts: str, text: str, manual_url: str, file_urls: list = None):
+def task_handle_modal_submission(channel_id: str, ts: str, text: str, manual_url: str, file_urls: list = None, base_url: str = None):
     """Processes modal submission in background: prioritizes file uploads, then manual URL."""
     image_urls = []
     
+    # Priority 1: File Uploads
     if file_urls:
         logger.info(f"Processing {len(file_urls)} file uploads (Priority 1)...")
-        for furl in file_urls[:3]: # Limit to 3 as requested
-            public_url = download_slack_file(furl, config.SLACK_BOT_TOKEN)
+        for furl in file_urls[:3]: # Limit to 3
+            public_url = download_slack_file(furl, config.SLACK_BOT_TOKEN, base_url)
             if public_url:
                 image_urls.append(public_url)
+    
+    # Priority 2: Manual URL (Only if no files uploaded)
     elif manual_url:
         logger.info(f"Using manual URL (Priority 2): {manual_url}")
         image_urls = [manual_url]
             
     update_slack_message(channel_id, ts, text, image_urls)
 
-def task_handle_modal_preview(view_id: str, channel_id: str, ts: str, text: str, file_url: str):
+def task_handle_modal_preview(view_id: str, channel_id: str, ts: str, text: str, file_url: str, base_url: str = None):
     """Processes instant modal preview: downloads file and refreshes the modal view."""
-    public_url = download_slack_file(file_url, config.SLACK_BOT_TOKEN)
+    public_url = download_slack_file(file_url, config.SLACK_BOT_TOKEN, base_url)
     if public_url:
         update_edit_modal(view_id, text, channel_id, ts, public_url)
 
@@ -75,7 +78,7 @@ def update_slack_message(channel_id: str, ts: str, new_text: str, image_urls: li
     url = "https://slack.com/api/chat.update"
     headers = {
         "Authorization": f"Bearer {config.SLACK_BOT_TOKEN}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json; charset=utf-8"
     }
     
     blocks = [
@@ -170,10 +173,11 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
 
             logger.info(f"Modal Submitted. Offloading processing to background task...")
             
+            base_url = str(request.base_url).rstrip('/')
             # Offload EVERYTHING (download + update) to background task to respond to Slack (<3s)
             background_tasks.add_task(
                 task_handle_modal_submission, 
-                channel_id, ts, edited_text, manual_image_url, file_urls_to_download
+                channel_id, ts, edited_text, manual_image_url, file_urls_to_download, base_url
             )
 
             return JSONResponse(content={"response_action": "clear"})
@@ -182,7 +186,7 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
         if payload["type"] == "block_actions":
             action_data = payload["actions"][0]
             action_id = action_data["action_id"]
-            user = payload["user"]["username"]
+            user = payload.get("user", {}).get("username", payload.get("user", {}).get("name", "Unknown"))
             
             # 🔹 HANDLE INSTANT MODAL PREVIEW (When file is selected)
             if action_id == "file_input":
@@ -199,8 +203,9 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
                     channel_id = private_metadata["channel_id"]
                     ts = private_metadata["ts"]
                     
+                    base_url = str(request.base_url).rstrip('/')
                     logger.info(f"File selected in modal. Offloading preview to background...")
-                    background_tasks.add_task(task_handle_modal_preview, view_id, channel_id, ts, post_text, file_url)
+                    background_tasks.add_task(task_handle_modal_preview, view_id, channel_id, ts, post_text, file_url, base_url)
                 return PlainTextResponse("OK")
 
             value_data = json.loads(action_data["value"])
@@ -215,12 +220,18 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
             if action_id == "edit_post":
                 trigger_id = payload.get("trigger_id")
                 channel_id = payload.get("channel", {}).get("id")
-                ts = payload.get("message", {}).get("ts")
+                message = payload.get("message", {})
+                ts = message.get("ts")
                 
-                logger.info(f"Edit button clicked. TriggerID: {trigger_id}, MessageTS: {ts}")
+                logger.info(f"Edit button clicked by {user}. TriggerID: {trigger_id}, MessageTS: {ts}")
+                logger.info(f"Current state to pass to modal: text_length={len(post_text)}, image_count={len(current_image_urls)}")
                 
+                if not trigger_id:
+                    logger.error("No TriggerID found in payload! Are you clicking an old or system-generated message?")
+
+                response_url = payload.get("response_url")
                 # Offload to background task to ensure 200 OK reaches Slack in <3s
-                background_tasks.add_task(open_edit_modal, trigger_id, post_text, channel_id, ts, current_image_urls)
+                background_tasks.add_task(open_edit_modal, trigger_id, post_text, channel_id, ts, current_image_urls, response_url)
                 return PlainTextResponse("OK")
 
             if action_id == "approve_post":
