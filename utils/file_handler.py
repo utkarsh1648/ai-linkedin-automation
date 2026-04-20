@@ -29,7 +29,7 @@ def upload_to_imgbb(file_path: str) -> str:
         logger.error(f"Error uploading to ImgBB: {e}")
         return None
 
-def download_slack_file(file_url: str, bot_token: str) -> str:
+def download_slack_file(file_url: str, bot_token: str, base_url: str = None) -> str:
     """
     Downloads a file from Slack as a temporary local copy, 
     then optionally uploads to ImgBB for permanent hosting.
@@ -58,8 +58,9 @@ def download_slack_file(file_url: str, bot_token: str) -> str:
                 logger.info(f"File uploaded to ImgBB: {cloud_url}")
                 return cloud_url
 
-        # Fallback: Local public URL (via Ngrok/Render)
-        public_url = f"{config.BASE_PUBLIC_URL}/{config.MEDIA_DIR}/{filename}"
+        # Fallback: Local public URL (via dynamically captured base_url or Ngrok/Render fallback)
+        actual_base = base_url if base_url else config.BASE_PUBLIC_URL
+        public_url = f"{actual_base}/{config.MEDIA_DIR}/{filename}"
         logger.info(f"Using local public URL: {public_url}")
         return public_url
         

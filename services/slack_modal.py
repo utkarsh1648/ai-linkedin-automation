@@ -107,7 +107,7 @@ def get_edit_view(post_text: str, channel_id: str, ts: str, current_image_urls: 
         "blocks": blocks
     }
 
-def open_edit_modal(trigger_id: str, post_text: str, channel_id: str, ts: str, initial_image_urls: List[str] = None):
+def open_edit_modal(trigger_id: str, post_text: str, channel_id: str, ts: str, initial_image_urls: List[str] = None, response_url: str = None):
     url = "https://slack.com/api/views.open"
     headers = {
         "Authorization": f"Bearer {config.SLACK_BOT_TOKEN}",
@@ -125,7 +125,20 @@ def open_edit_modal(trigger_id: str, post_text: str, channel_id: str, ts: str, i
         res_data = res.json()
         logger.info(f"Modal Open Response: {res_data}")
         if not res_data.get("ok"):
-            logger.error(f"Slack API Error opening modal: {res_data.get('error')} - {res_data.get('response_metadata')}")
+            error_code = res_data.get("error")
+            logger.error(f"Slack API Error opening modal: {error_code} - {res_data.get('response_metadata')}")
+            
+            # Surface cold start issues or timeouts to the user
+            if error_code == "expired_trigger_id" and response_url:
+                try:
+                    requests.post(response_url, json={
+                        "response_type": "ephemeral",
+                        "replace_original": False,
+                        "text": "⏳ *The server was cold-starting!* Your action timed out. Please click the *Edit* button again."
+                    }, timeout=5)
+                except Exception as ping_ex:
+                    logger.error(f"Failed to send ephemeral error message: {ping_ex}")
+
     except Exception as e:
         logger.error(f"Failed to open slack edit modal: {e}")
 
