@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 
+
 class Config:
     def __init__(self):
         load_dotenv(override=True)
@@ -13,15 +14,20 @@ class Config:
         self.BASE_PUBLIC_URL = os.getenv("BASE_PUBLIC_URL", "http://localhost:8000").strip()
         self.IMGBB_API_KEY = os.getenv("IMGBB_API_KEY", "").strip()
         self.MEDIA_DIR = "media"
-        
+
+        # X (Twitter) Trends integration
+        self.X_API_KEY = os.getenv("X_API_KEY", "").strip()
+        self.ENABLE_X_API = os.getenv("ENABLE_X_API", "true").lower() == "true"
+
         self.NEWS_API_QUERIES = [
             "Artificial Intelligence OR AI",
-            "Salesforce OR Agentforce"
+            "Salesforce OR Agentforce",
         ]
-        
+
         self.RSS_FEEDS = [
             "https://techcrunch.com/category/artificial-intelligence/feed/",
-            "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"
+            "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
         ]
+
 
 config = Config()

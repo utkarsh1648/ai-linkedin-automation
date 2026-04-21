@@ -1,10 +1,10 @@
 import os
 import uuid
 import requests
-import logging
 from config import config
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def upload_to_imgbb(file_path: str) -> str:
     """

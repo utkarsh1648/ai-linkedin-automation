@@ -1,8 +1,9 @@
 import requests
 import logging
 from typing import List, Dict
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def fetch_x_trends(api_key: str, woeid: int = 1) -> List[Dict]:
     """
