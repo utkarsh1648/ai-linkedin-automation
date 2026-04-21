@@ -67,11 +67,15 @@ def task_handle_modal_submission(channel_id: str, ts: str, text: str, manual_url
             
     update_slack_message(channel_id, ts, text, image_urls)
 
-def task_handle_modal_preview(view_id: str, channel_id: str, ts: str, text: str, file_url: str, base_url: str = None):
-    """Processes instant modal preview: downloads file and refreshes the modal view."""
-    public_url = download_slack_file(file_url, config.SLACK_BOT_TOKEN, base_url)
-    if public_url:
-        update_edit_modal(view_id, text, channel_id, ts, public_url)
+def task_handle_modal_preview(view_id: str, channel_id: str, ts: str, text: str, file_urls: list, base_url: str = None):
+    """Processes instant modal preview: downloads files and refreshes the modal view."""
+    public_urls = []
+    for file_url in file_urls[:3]:
+        public_url = download_slack_file(file_url, config.SLACK_BOT_TOKEN, base_url)
+        if public_url:
+            public_urls.append(public_url)
+    if public_urls:
+        update_edit_modal(view_id, text, channel_id, ts, public_urls)
 
 def update_slack_message(channel_id: str, ts: str, new_text: str, image_urls: list = None):
     """Update an existing Slack message with new content."""
@@ -193,7 +197,7 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
                 view_id = payload["view"]["id"]
                 files = action_data.get("files", [])
                 if files:
-                    file_url = files[0].get("url_private_download")
+                    file_urls_to_download = [f.get("url_private_download") for f in files if f.get("url_private_download")]
                     
                     # Extract current text to preserve it
                     state_values = payload["view"]["state"]["values"]
@@ -205,7 +209,7 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
                     
                     base_url = str(request.base_url).rstrip('/')
                     logger.info(f"File selected in modal. Offloading preview to background...")
-                    background_tasks.add_task(task_handle_modal_preview, view_id, channel_id, ts, post_text, file_url, base_url)
+                    background_tasks.add_task(task_handle_modal_preview, view_id, channel_id, ts, post_text, file_urls_to_download, base_url)
                 return PlainTextResponse("OK")
 
             value_data = json.loads(action_data["value"])

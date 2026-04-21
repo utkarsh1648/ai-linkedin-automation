@@ -14,7 +14,8 @@ def post_to_linkedin(text: str, image_urls: List[str] = None) -> dict:
 
     assets_block = ""
     if image_urls:
-        assets_block = f'assets: {{ images: [ {{ url: "{image_urls[0]}" }} ] }}'
+        images_str = ", ".join([f'{{url: "{url}"}}' for url in image_urls])
+        assets_block = f'assets: {{ images: [ {images_str} ] }}'
 
     mutation = f"""
     mutation CreatePost($text: String!, $channelId: ChannelId!) {{
