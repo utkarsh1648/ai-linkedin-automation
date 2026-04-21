@@ -165,7 +165,7 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
             file_urls_to_download = []
             files = state_values.get("file_block", {}).get("file_input", {}).get("files", [])
             if files:
-                file_urls_to_download = [f.get("url_private") for f in files if f.get("url_private")]
+                file_urls_to_download = [f.get("url_private_download") for f in files if f.get("url_private_download")]
 
             private_metadata = json.loads(payload["view"]["private_metadata"])
             channel_id = private_metadata["channel_id"]
@@ -193,7 +193,7 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
                 view_id = payload["view"]["id"]
                 files = action_data.get("files", [])
                 if files:
-                    file_url = files[0].get("url_private")
+                    file_url = files[0].get("url_private_download")
                     
                     # Extract current text to preserve it
                     state_values = payload["view"]["state"]["values"]

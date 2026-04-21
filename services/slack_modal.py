@@ -113,6 +113,8 @@ def open_edit_modal(trigger_id: str, post_text: str, channel_id: str, ts: str, i
         "Authorization": f"Bearer {config.SLACK_BOT_TOKEN}",
         "Content-Type": "application/json; charset=utf-8"
     }
+    
+    logger.info(f"Opening modal with token ending in ...{config.SLACK_BOT_TOKEN[-4:]}")
 
     view = get_edit_view(post_text, channel_id, ts, initial_image_urls)
     payload = {
