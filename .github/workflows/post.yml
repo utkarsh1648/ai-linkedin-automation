@@ -29,3 +29,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BUFFER_TOKEN: ${{ secrets.BUFFER_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          ENABLE_X_API: ${{ secrets.ENABLE_X_API }}
+          IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
