@@ -93,19 +93,6 @@ Input news:
             return response.text
         except Exception as e:
             logger.error(f"AIService: Failed to generate social post - {e}")
-            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                logger.warning("AIService: Rate limit exceeded. Using MOCK FALLBACK post for testing.")
-                return """🚀 The "AI Chat" phase is over. We are entering the era of functional AI Agents.
-
-Recent releases in agentic patterns signal a shift from simple prompting to complex, autonomous orchestration.
-
-This transition isn't just about productivity; it's about redefining how we interact with technology at a fundamental level.
-
-Insight: The real winner in the AI race isn't the one with the biggest model, but the one with the most reliable agentic ecosystem.
-
-Are you moving past the chat interface this year?
-
-Source: https://techcrunch.com/2026/04/08/poke-makes-ai-agents-as-easy-as-sending-a-text/"""
             return ""
 
     def generate_newsletter_intro(self, articles: List[Dict[str, str]]) -> str:
@@ -131,4 +118,4 @@ Articles:
             return response.text
         except Exception as e:
             logger.error(f"AIService: Failed to generate intro - {e}")
-            return "The AI landscape is shifting rapidly today, with a major focus on agentic workflows and cross-industry infrastructure partnerships."
+            return ""

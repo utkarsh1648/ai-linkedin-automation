@@ -18,11 +18,9 @@ def upload_to_imgbb(file_path: str) -> str:
     try:
         url = "https://api.imgbb.com/1/upload"
         with open(file_path, "rb") as file:
-            payload = {
-                "key": imgbb_key,
-                "image": file.read(),
-            }
-            res = requests.post(url, data=payload, timeout=20)
+            res = requests.post(url, data={"key": imgbb_key}, files={"image": file}, timeout=20)
+            if res.status_code != 200:
+                logger.error(f"ImgBB failed with {res.status_code}: {res.text}")
             res.raise_for_status()
             data = res.json()
             return data["data"]["url"]
@@ -43,14 +41,27 @@ def download_slack_file(file_url: str, bot_token: str, base_url: str = None) -> 
         local_path = os.path.join(config.MEDIA_DIR, filename)
         
         os.makedirs(config.MEDIA_DIR, exist_ok=True)
+        if not bot_token.startswith("xoxb-"):
+            logger.error("Bot token does not start with xoxb-. File download will fail.")
+
+        class SlackSession(requests.Session):
+            def rebuild_auth(self, prepared_request, response):
+                # Prevent requests from stripping the Authorization header on redirects 
+                # (Slack redirects from files.slack.com to slack-edge.com)
+                pass
+
+        session = SlackSession()
         headers = {"Authorization": f"Bearer {bot_token}"}
         
-        response = requests.get(file_url, headers=headers, stream=True, timeout=15)
+        response = session.get(file_url, headers=headers, stream=True, timeout=15)
         response.raise_for_status()
         
         with open(local_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
+                
+        file_size = os.path.getsize(local_path)
+        logger.info(f"Downloaded slack file to {local_path}, size: {file_size} bytes")
         
         # Priority: Try Cloud Hosting (ImgBB)
         if getattr(config, 'IMGBB_API_KEY', None):
