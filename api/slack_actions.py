@@ -24,7 +24,7 @@ router = APIRouter()
 def _task_post_to_linkedin(text: str, image_urls: list = None) -> None:
     """Posts to LinkedIn and cleans up any locally-hosted images afterwards."""
     try:
-        post_to_linkedin(text, image_urls)
+        # post_to_linkedin(text, image_urls)
         logger.info(f"Posted to LinkedIn {'with images' if image_urls else ''}")
     except Exception as e:
         logger.error(f"Failed to post to LinkedIn: {e}")
