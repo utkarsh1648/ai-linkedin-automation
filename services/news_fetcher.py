@@ -6,14 +6,19 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Shared article schema keys: title, description, content, source, url, published_at, urlToImage
+
+
 class BaseFetcher:
-    """Abstract base definition for a generic News Fetcher."""
+    """Interface for a news source fetcher. Subclasses must implement fetch()."""
+
     def fetch(self) -> List[Dict[str, str]]:
-        raise NotImplementedError("Subclasses must implement the fetch method.")
+        raise NotImplementedError
+
 
 class NewsApiFetcher(BaseFetcher):
-    """Fetches trending tech news from the NewsAPI service."""
-    
+    """Fetches AI news from the NewsAPI /v2/everything endpoint."""
+
     BASE_URL = "https://newsapi.org/v2/everything"
 
     def __init__(self, api_key: str, queries: List[str]):
@@ -29,83 +34,96 @@ class NewsApiFetcher(BaseFetcher):
         for query in self.queries:
             url = f"{self.BASE_URL}?q={query}&sortBy=publishedAt&language=en&apiKey={self.api_key}"
             try:
-                logger.info(f"NewsAPI: Fetching articles for query '{query}'")
+                logger.info(f"NewsAPI: fetching query '{query}'")
                 res = requests.get(url, timeout=10)
                 if res.status_code == 200:
-                    data = res.json().get("articles", [])
-                    articles.extend(data[:25])
+                    for raw in res.json().get("articles", [])[:25]:
+                        articles.append(self._normalize(raw))
                 else:
-                    logger.warning(f"NewsAPI: Non-200 response ({res.status_code}) for query '{query}'")
+                    logger.warning(f"NewsAPI: status {res.status_code} for query '{query}'")
             except Exception as e:
-                logger.error(f"NewsAPI: Error fetching query '{query}': {e}")
-        
+                logger.error(f"NewsAPI: error for query '{query}': {e}")
+
         return articles
 
+    @staticmethod
+    def _normalize(raw: dict) -> Dict[str, str]:
+        source = raw.get("source", {})
+        return {
+            "title": raw.get("title", ""),
+            "description": raw.get("description", ""),
+            "content": raw.get("content", raw.get("description", "")),
+            "source": source.get("name", "Unknown") if isinstance(source, dict) else str(source),
+            "url": raw.get("url", ""),
+            "published_at": raw.get("publishedAt", ""),
+            "urlToImage": raw.get("urlToImage", ""),
+        }
+
+
 class RSSFetcher(BaseFetcher):
-    """Fetches tech news from standard RSS feeds."""
-    
+    """Fetches news from standard RSS feeds."""
+
     def __init__(self, feed_urls: List[str]):
         self.feed_urls = feed_urls
-        
+
     def fetch(self) -> List[Dict[str, str]]:
         articles = []
         for url in self.feed_urls:
-            logger.info(f"RSSFetcher: Fetching from '{url}'")
+            logger.info(f"RSSFetcher: fetching '{url}'")
             try:
                 response = requests.get(url, timeout=10)
                 if response.status_code != 200:
-                    logger.warning(f"RSSFetcher: Failed logic {url} - Status Code {response.status_code}")
+                    logger.warning(f"RSSFetcher: status {response.status_code} for '{url}'")
                     continue
-                
+
                 root = ET.fromstring(response.content)
                 for item in root.findall(".//item"):
-                    title = item.find("title").text if item.find("title") is not None else ""
-                    link = item.find("link").text if item.find("link") is not None else ""
-                    description = item.find("description").text if item.find("description") is not None else ""
-                    
+                    title = item.find("title")
+                    link = item.find("link")
+                    desc = item.find("description")
+
+                    description = desc.text if desc is not None else ""
                     if description:
-                        description = re.sub('<[^<]+?>', '', description)[:200]
-                    
+                        description = re.sub("<[^<]+?>", "", description)[:200]
+
                     articles.append({
-                        "title": title,
+                        "title": title.text if title is not None else "",
                         "description": description,
-                        "url": link,
-                        "urlToImage": ""
+                        "content": description,
+                        "source": "RSS Feed",
+                        "url": link.text if link is not None else "",
+                        "published_at": "",
+                        "urlToImage": "",
                     })
             except Exception as e:
-                logger.error(f"RSSFetcher: Exception parsing {url}: {e}")
-        
+                logger.error(f"RSSFetcher: error parsing '{url}': {e}")
+
         return articles
 
+
 class NewsAggregator:
-    """Coordinates various fetchers to produce a unified, deduplicated list of news articles."""
+    """Coordinates fetchers and returns a deduplicated, normalized article list."""
+
     def __init__(self, fetchers: List[BaseFetcher]):
         self.fetchers = fetchers
-        
+
     def fetch_all(self, limit: int = 50) -> List[Dict[str, str]]:
-        all_raw_articles = []
+        raw: List[Dict[str, str]] = []
         for fetcher in self.fetchers:
-            all_raw_articles.extend(fetcher.fetch())
-            
-        return self._deduplicate(all_raw_articles, limit)
+            raw.extend(fetcher.fetch())
+        return self._deduplicate(raw, limit)
 
     def _deduplicate(self, raw_articles: List[Dict[str, str]], limit: int) -> List[Dict[str, str]]:
-        processed = []
         seen_urls: Set[str] = set()
-        
+        processed = []
+
         for article in raw_articles:
             url = article.get("url", "")
             if url and url not in seen_urls:
-                processed.append({
-                    "title": article.get("title", ""),
-                    "description": article.get("description", ""),
-                    "url": url,
-                    "urlToImage": article.get("urlToImage", "")
-                })
+                processed.append(article)
                 seen_urls.add(url)
-                
                 if len(processed) >= limit:
                     break
-                    
-        logger.info(f"Aggregator: Final deduped article count: {len(processed)}")
+
+        logger.info(f"Aggregator: {len(processed)} unique articles after deduplication")
         return processed

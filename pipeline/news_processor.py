@@ -1,7 +1,8 @@
 import logging
 from typing import List, Dict
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def clean_news(articles: List[Dict]) -> List[Dict]:
     """
