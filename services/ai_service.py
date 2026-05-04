@@ -2,7 +2,11 @@ import json
 from google import genai
 from typing import List, Dict
 from utils.logger import get_logger
-
+from prompts import (
+    SELECT_TOP_TRENDING_PROMPT,
+    GENERATE_SOCIAL_POST_PROMPT,
+    GENERATE_NEWSLETTER_INTRO_PROMPT
+)
 logger = get_logger(__name__)
 
 class AIService:
@@ -20,17 +24,11 @@ class AIService:
 
         articles_list = "\n".join([f"[{i}] {a.get('title', 'Unknown')}" for i, a in enumerate(articles)])
 
-        prompt = f"""
-Analyze the following {len(articles)} news items. 
-Select the TOP {count} most trending, innovative, or high-impact articles. 
-Look for major product launches, breakthroughs, or market-shifting news.
-
-News Articles:
-{articles_list}
-
-Return ONLY a JSON list of the integers representing the indices of your selected articles. 
-Example Output: [0, 4, 12, 19, 21]
-"""
+        prompt = SELECT_TOP_TRENDING_PROMPT.format(
+            article_count=len(articles),
+            count=count,
+            articles_list=articles_list
+        )
         
         try:
             logger.info("AIService: Sending `select_top_trending` request to Gemini.")
@@ -56,34 +54,9 @@ Example Output: [0, 4, 12, 19, 21]
 
         articles_text = "\n".join([f"Article {i+1}: {a.get('title')} - {a.get('description')} ({a.get('url')})" for i, a in enumerate(articles)])
 
-        prompt = f"""
-You are a senior LinkedIn content strategist specializing in AI thought leadership.
-Transform the following AI news into a high-impact LinkedIn post.
-
-Input news: 
-{articles_text}
-
-## Writing Style:
-- Sharp, concise, and insightful.
-- Professional but conversational.
-- Focus on trust, impact, and real-world implications.
-- Avoid hype and generic phrases like "revolutionary" or "game-changing".
-- Make it feel human, not AI-generated.
-
-## Structure:
-1. Strong hook (1-2 lines, thought-provoking).
-2. Context (what happened).
-3. Insight (why it matters for industry/society).
-4. Deeper reflection (leadership, trust, implications).
-5. Closing question (to drive engagement).
-
-## Rules:
-- Use short paragraphs (1-2 lines each).
-- No emoji overload (max 1-2 if needed).
-- Keep the length under 150 words.
-- Encourage discussion, not conclusions.
-- IMPORTANT: Include the source link (URL) of the chosen article at the very bottom.
-"""
+        prompt = GENERATE_SOCIAL_POST_PROMPT.format(
+            articles_text=articles_text
+        )
         try:
             logger.info("AIService: generating social post.")
             response = self.client.models.generate_content(
@@ -102,13 +75,10 @@ Input news:
 
         articles_text = "\n".join([f"Article {i+1}: {a.get('title')}" for i, a in enumerate(articles)])
 
-        prompt = f"""
-You are an AI news editor writing a newsletter.
-Based on the following top {len(articles)} AI news articles, write a short, engaging 2-3 sentence introductory paragraph summarizing the overall trends or highlights of today's AI news.
-
-Articles:
-{articles_text}
-"""
+        prompt = GENERATE_NEWSLETTER_INTRO_PROMPT.format(
+            article_count=len(articles),
+            articles_text=articles_text
+        )
         try:
             logger.info("AIService: generating newsletter intro.")
             response = self.client.models.generate_content(

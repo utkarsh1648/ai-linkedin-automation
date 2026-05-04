@@ -80,6 +80,10 @@ class BaseSubscriberStore(ABC):
 # JSON driver (default)
 # ---------------------------------------------------------------------------
 
+# Fallback path — committed to git, always present
+_EXAMPLE_JSON_PATH = "subscribers.example.json"
+
+
 class JSONSubscriberStore(BaseSubscriberStore):
     """
     Stores subscribers as a JSON array in a local file.
@@ -87,30 +91,69 @@ class JSONSubscriberStore(BaseSubscriberStore):
 
     Thread-safe: a module-level lock prevents concurrent write corruption.
     Set SUBSCRIBERS_JSON_PATH to control the file location.
-    On Render: commit the file or mount a persistent disk so it survives deploys.
+
+    Fallback behaviour (e.g. on Render with no persistent disk):
+      If SUBSCRIBERS_JSON_PATH does not exist, the store automatically falls
+      back to subscribers.example.json in READ-ONLY mode — perfect for
+      smoke-testing the email pipeline without a real database.
+      Writes (add/remove) are skipped with a warning in fallback mode.
     """
 
     _lock = threading.Lock()
 
-    def init(self) -> None:
-        """Create an empty JSON file if it doesn't exist."""
+    # ------------------------------------------------------------------ #
+    # Internal: resolve which file to use and whether writes are allowed   #
+    # ------------------------------------------------------------------ #
+
+    def _active_path(self) -> str:
+        """Return the path that actually exists, preferring the primary file."""
         import os
-        if not os.path.exists(config.SUBSCRIBERS_JSON_PATH):
+        if os.path.exists(config.SUBSCRIBERS_JSON_PATH):
+            return config.SUBSCRIBERS_JSON_PATH
+        if os.path.exists(_EXAMPLE_JSON_PATH):
+            return _EXAMPLE_JSON_PATH
+        return config.SUBSCRIBERS_JSON_PATH  # will be created on first write
+
+    def _is_fallback(self) -> bool:
+        """True when using the example file because the primary file is absent."""
+        import os
+        return (
+            not os.path.exists(config.SUBSCRIBERS_JSON_PATH)
+            and os.path.exists(_EXAMPLE_JSON_PATH)
+        )
+
+    def init(self) -> None:
+        import os
+        if os.path.exists(config.SUBSCRIBERS_JSON_PATH):
+            logger.info(f"JSON subscriber store ready at '{config.SUBSCRIBERS_JSON_PATH}'")
+        elif os.path.exists(_EXAMPLE_JSON_PATH):
+            logger.warning(
+                f"'{config.SUBSCRIBERS_JSON_PATH}' not found — "
+                f"falling back to '{_EXAMPLE_JSON_PATH}' (read-only mode). "
+                "Writes will be skipped. Create a real subscribers file or mount a persistent disk."
+            )
+        else:
             self._write([])
             logger.info(f"Created subscriber file at '{config.SUBSCRIBERS_JSON_PATH}'")
-        else:
-            logger.info(f"JSON subscriber store ready at '{config.SUBSCRIBERS_JSON_PATH}'")
 
     # --- Internal helpers ---
 
     def _read(self) -> List[dict]:
+        path = self._active_path()
         try:
-            with open(config.SUBSCRIBERS_JSON_PATH, "r", encoding="utf-8") as f:
+            with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             return []
 
     def _write(self, data: List[dict]) -> None:
+        if self._is_fallback():
+            logger.warning(
+                f"Write skipped — running in read-only fallback mode "
+                f"('{_EXAMPLE_JSON_PATH}'). "
+                "Create '{config.SUBSCRIBERS_JSON_PATH}' to enable writes."
+            )
+            return
         with open(config.SUBSCRIBERS_JSON_PATH, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
