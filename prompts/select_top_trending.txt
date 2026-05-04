@@ -1,0 +1,9 @@
+Analyze the following {article_count} news items. 
+Select the TOP {count} most trending, innovative, or high-impact articles. 
+Look for major product launches, breakthroughs, or market-shifting news.
+
+News Articles:
+{articles_list}
+
+Return ONLY a JSON list of the integers representing the indices of your selected articles. 
+Example Output: [0, 4, 12, 19, 21]

@@ -1,0 +1,5 @@
+You are an AI news editor writing a newsletter.
+Based on the following top {article_count} AI news articles, write a short, engaging 2-3 sentence introductory paragraph summarizing the overall trends or highlights of today's AI news.
+
+Articles:
+{articles_text}
