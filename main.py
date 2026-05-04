@@ -94,7 +94,12 @@ def _dispatch_newsletter(intro_text: str, articles: list) -> None:
             ),
         })
 
-    email_service = EmailService()
+    try:
+        email_service = EmailService()
+    except (ValueError, ImportError) as exc:
+        logger.warning(f"Email dispatch skipped — driver not configured: {exc}")
+        return
+
     result = email_service.send_newsletter(
         recipients=recipients,
         subject="🔥 Your AI News Digest",
