@@ -20,6 +20,7 @@ from utils.prompt_loader import load_prompt
 
 SELECT_TOP_TRENDING_PROMPT = load_prompt("select_top_trending")
 GENERATE_SOCIAL_POST_PROMPT = load_prompt("generate_social_post")
+GENERATE_MULTI_PLATFORM_POST_PROMPT = load_prompt("generate_multi_platform_post")
 GENERATE_NEWSLETTER_INTRO_PROMPT = load_prompt("generate_newsletter_intro")
 
 PROMPT_LIST = [
