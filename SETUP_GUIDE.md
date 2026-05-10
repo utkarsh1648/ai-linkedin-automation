@@ -37,6 +37,14 @@ Welcome! This guide will help you configure and deploy your unified AI broadcast
 *   **Action**: Sign up at [ImgBB](https://imgbb.com/) and get an API key from the [API Documentation](https://api.imgbb.com/).
 *   **Env Variable**: `IMGBB_API_KEY`
 
+### 5. Resend (Email Newsletter)
+*   **Purpose**: Sends the "AI News Digest" to your subscribers.
+*   **Action**: 
+    1. Create an account at [Resend](https://resend.com).
+    2. Get your **API Key**.
+    3. Verify your domain (optional but recommended).
+*   **Env Variables**: `EMAIL_DRIVER` ("resend" or "smtp"), `RESEND_API_KEY`, `EMAIL_SENDER` (your verified email).
+
 ---
 
 ## ⚙️ Configuration (.env)
@@ -65,6 +73,12 @@ BASE_PUBLIC_URL="https://your-ngrok-url.ngrok-free.dev"
 # Use 'json' for local dev, 'postgres' for Render
 STORAGE_DRIVER="json"
 DATABASE_URL="postgresql://..." 
+
+# Email (Resend)
+EMAIL_DRIVER="resend"
+RESEND_API_KEY="re_..."
+EMAIL_SENDER="you@yourdomain.com"
+EMAIL_SENDER_NAME="AI News Digest"
 ```
 
 ---

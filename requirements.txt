@@ -8,7 +8,7 @@ httpx==0.27.0
 # AI & Content (New Unified SDK)
 google-genai==0.3.0
 beautifulsoup4==4.12.3
-feedparser==6.0.10
+resend==2.4.0
 
 # Visual Engine (News Cards)
 Pillow==11.1.0
@@ -19,3 +19,4 @@ psycopg2-binary==2.9.9
 # Utilities
 python-multipart==0.0.9
 jinja2==3.1.3
+email-validator==2.1.1
