@@ -75,7 +75,11 @@ class PostgresPendingPostStore:
     def _get_connection(self):
         import psycopg2
         from psycopg2.extras import RealDictCursor
-        return psycopg2.connect(self.db_url, cursor_factory=RealDictCursor)
+        # Ensure the URL is in the correct format for psycopg2 (postgres:// -> postgresql://)
+        db_url = self.db_url
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        return psycopg2.connect(db_url, cursor_factory=RealDictCursor)
 
     def _init_db(self):
         try:
