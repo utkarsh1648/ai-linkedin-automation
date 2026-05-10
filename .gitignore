@@ -3,10 +3,14 @@ __pycache__/
 .env
 venv/
 
-# Subscriber data — contains PII (emails, names, contact numbers)
-# Use subscribers.example.json as a schema reference instead
+# Subscriber data
 subscribers.json
 
 # Generated output files
 output_newsletter.html
-subscribers.db
+subscribers.db
+
+# Workflow Cache & Local Utils
+news_cache.json
+pending_posts.json
+utils/cleanup.py

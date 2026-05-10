@@ -5,6 +5,7 @@ from utils.logger import get_logger
 from prompts import (
     SELECT_TOP_TRENDING_PROMPT,
     GENERATE_SOCIAL_POST_PROMPT,
+    GENERATE_MULTI_PLATFORM_POST_PROMPT,
     GENERATE_NEWSLETTER_INTRO_PROMPT
 )
 logger = get_logger(__name__)
@@ -15,7 +16,7 @@ class AIService:
         if not api_key:
             logger.warning("Empty GEMINI_API_KEY provided.")
         self.client = genai.Client(api_key=api_key)
-        self.model_name = "gemini-flash-latest" 
+        self.model_name = "gemini-flash-lite-latest" 
 
     def select_top_trending(self, articles: List[Dict[str, str]], count: int = 10) -> List[Dict[str, str]]:
         """Analyzes a large pool of articles to select the most trending ones."""
@@ -67,6 +68,34 @@ class AIService:
         except Exception as e:
             logger.error(f"AIService: Failed to generate social post - {e}")
             return ""
+
+    def generate_multi_platform_posts(self, articles: List[Dict[str, str]], styles: List[str] = None) -> Dict[str, str]:
+        """Generates content for multiple platforms dynamically based on provided styles."""
+        if not articles:
+            return {}
+
+        styles = styles or ["linkedin", "twitter", "instagram"]
+        articles_text = "\n".join([f"Article {i+1}: {a.get('title')} - {a.get('description')} ({a.get('url')})" for i, a in enumerate(articles)])
+
+        # Dynamically inject styles into the prompt instructions
+        style_list_str = ", ".join(styles)
+        prompt = GENERATE_MULTI_PLATFORM_POST_PROMPT.format(
+            articles_text=articles_text,
+            style_list=style_list_str
+        )
+        try:
+            logger.info(f"AIService: generating posts for styles: {style_list_str}")
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config={'response_mime_type': 'application/json'}
+            )
+            return json.loads(response.text.strip())
+        except Exception as e:
+            logger.error(f"AIService: Failed to generate multi-platform posts - {e}")
+            # Dynamic fallback: Map all requested styles to the fallback text
+            fallback_text = self.generate_social_post(articles)
+            return {s: fallback_text for s in styles}
 
     def generate_newsletter_intro(self, articles: List[Dict[str, str]]) -> str:
         """Generates a short intro paragraph for the newsletter."""

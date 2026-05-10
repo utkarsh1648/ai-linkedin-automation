@@ -433,7 +433,7 @@ class PostgreSQLSubscriberStore(BaseSubscriberStore):
 # ---------------------------------------------------------------------------
 
 def _resolve_store() -> BaseSubscriberStore:
-    driver = config.SUBSCRIBER_DRIVER
+    driver = config.STORAGE_DRIVER
     if driver == "sqlite":
         logger.info("Subscriber store driver: SQLite")
         return SQLiteSubscriberStore()
@@ -442,7 +442,7 @@ def _resolve_store() -> BaseSubscriberStore:
         return PostgreSQLSubscriberStore()
     if driver != "json":
         logger.warning(
-            f"Unknown SUBSCRIBER_DRIVER='{driver}' — falling back to JSON. "
+            f"Unknown STORAGE_DRIVER='{driver}' — falling back to JSON. "
             "Valid options: json, sqlite, postgres"
         )
     logger.info("Subscriber store driver: JSON")

@@ -20,12 +20,19 @@ def upload_to_imgbb(file_path: str) -> str:
         with open(file_path, "rb") as file:
             res = requests.post(url, data={"key": imgbb_key}, files={"image": file}, timeout=20)
             if res.status_code != 200:
-                logger.error(f"ImgBB failed with {res.status_code}: {res.text}")
-            res.raise_for_status()
+                logger.error(f"ImgBB API Error (Status {res.status_code}): {res.text}")
+                return None
+            
             data = res.json()
-            return data["data"]["url"]
+            if data.get("success"):
+                image_url = data["data"]["url"]
+                logger.info(f"ImgBB: Successfully uploaded. Direct URL: {image_url}")
+                return image_url
+            else:
+                logger.error(f"ImgBB API returned success=False: {data}")
+                return None
     except Exception as e:
-        logger.error(f"Error uploading to ImgBB: {e}")
+        logger.error(f"ImgBB Upload Exception: {e}")
         return None
 
 def download_slack_file(file_url: str, bot_token: str, base_url: str = None) -> str:
@@ -64,7 +71,7 @@ def download_slack_file(file_url: str, bot_token: str, base_url: str = None) -> 
         logger.info(f"Downloaded slack file to {local_path}, size: {file_size} bytes")
         
         # Priority: Try Cloud Hosting (ImgBB)
-        if getattr(config, 'IMGBB_API_KEY', None):
+        if config.IMGBB_API_KEY:
             cloud_url = upload_to_imgbb(local_path)
             if cloud_url:
                 logger.info(f"File uploaded to ImgBB: {cloud_url}")

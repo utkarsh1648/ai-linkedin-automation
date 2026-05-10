@@ -1,17 +1,21 @@
-fastapi
-uvicorn[standard]
-python-dotenv
-requests
-google-genai
-python-multipart
-pydantic[email]
+# Core Framework
+fastapi==0.110.0
+uvicorn==0.27.1
+python-dotenv==1.0.1
+requests==2.31.0
+httpx==0.27.0
 
-# Email newsletter service
-resend                  # Resend API driver (EMAIL_DRIVER=resend)
-# smtplib ships with Python — no install needed for: EMAIL_DRIVER=smtp
+# AI & Content
+google-generativeai==0.4.1
+beautifulsoup4==4.12.3
+feedparser==6.0.10
 
-# Subscriber store
-# JSON driver (default) — no extra packages needed
-# SQLite driver          — no extra packages needed (ships with Python)
-# PostgreSQL driver      — uncomment below and set SUBSCRIBER_DRIVER=postgres
-# psycopg2-binary
+# Visual Engine (News Cards)
+Pillow==10.2.0
+
+# Database (Render Support)
+psycopg2-binary==2.9.9
+
+# Utilities
+python-multipart==0.0.9
+jinja2==3.1.3
