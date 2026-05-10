@@ -1,5 +1,6 @@
 import os
 import uuid
+from typing import Optional
 import requests
 from config import config
 from utils.logger import get_logger
