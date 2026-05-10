@@ -13,6 +13,7 @@ class PendingPostStore(Protocol):
     def save_post(self, posts_data: Dict[str, str], image_urls: list) -> str: ...
     def get_post(self, post_id: str) -> Optional[dict]: ...
     def delete_post(self, post_id: str): ...
+    def update_post(self, post_id: str, data: dict): ...
 
 class JSONPendingPostStore:
     def __init__(self, storage_path: str = "pending_posts.json"):
@@ -59,6 +60,12 @@ class JSONPendingPostStore:
         if post_id in data:
             del data[post_id]
             self._save_all(data)
+
+    def update_post(self, post_id: str, data: dict):
+        all_data = self._load_all()
+        if post_id in all_data:
+            all_data[post_id].update(data)
+            self._save_all(all_data)
 
 class PostgresPendingPostStore:
     def __init__(self, db_url: str):
@@ -126,6 +133,19 @@ class PostgresPendingPostStore:
             conn.close()
         except Exception as e:
             logger.error(f"Postgres delete_post error: {e}")
+
+    def update_post(self, post_id: str, data: dict):
+        try:
+            conn = self._get_connection()
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE pending_posts SET data = %s WHERE id = %s",
+                    (json.dumps(data), post_id)
+                )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Postgres update_post error: {e}")
 
 def _resolve_store() -> PendingPostStore:
     if config.STORAGE_DRIVER == "postgres" and config.DATABASE_URL:

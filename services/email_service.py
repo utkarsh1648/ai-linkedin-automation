@@ -118,12 +118,19 @@ class EmailService:
 
     def __init__(self):
         self._driver = self._resolve_driver()
-        logger.info(f"EmailService initialised with driver: {config.EMAIL_DRIVER}")
 
     def _resolve_driver(self) -> BaseEmailDriver:
-        if config.EMAIL_DRIVER == "smtp":
+        driver_type = config.EMAIL_DRIVER
+        if driver_type == "smtp":
+            logger.info("Using SMTP email driver.")
             return SmtpDriver()
+        
         # Default to Resend
+        if driver_type != "resend":
+            logger.warning(f"Unknown or empty EMAIL_DRIVER '{driver_type}'. Falling back to 'resend'.")
+        else:
+            logger.info("Using Resend email driver.")
+            
         return ResendDriver()
 
     def send_newsletter(

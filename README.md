@@ -48,5 +48,15 @@ For detailed instructions on API keys, Slack configuration, and deployment, plea
 
 ---
 
+## 🚀 Render Deployment (Free Tier)
+
+This bot is optimized to run on Render's **Free Tier** without requiring a paid Persistent Disk. To ensure stability:
+
+1.  **Storage**: Use the **Postgres** driver (`STORAGE_DRIVER=postgres`) with a Render Free PostgreSQL instance.
+2.  **Images**: Set `IMGBB_API_KEY` to ensure all images are hosted in the cloud.
+3.  **Newsletter**: Use the **Resend** driver for reliable email delivery.
+
+---
+
 ## 📜 Automation
 The pipeline can be triggered manually or scheduled using **GitHub Actions** or a standard CRON job to ensure a consistent social media presence.

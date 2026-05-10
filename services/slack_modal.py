@@ -23,7 +23,7 @@ def _build_loading_view(channel_id: str, ts: str, metadata: str) -> dict:
     }
 
 def _build_modal_view(
-    posts: dict, channel_id: str, ts: str, current_image_urls: Optional[List[str]] = None, metadata: Optional[str] = None
+    posts: dict, channel_id: str, ts: str, post_id: str, current_image_urls: Optional[List[str]] = None, metadata: Optional[str] = None
 ) -> dict:
     """Constructs the Slack Modal view JSON with inputs for ALL post styles."""
     current_image_urls = current_image_urls or []
@@ -172,7 +172,7 @@ def _build_modal_view(
         "type": "modal",
         "callback_id": "edit_post_modal",
         "private_metadata": metadata if metadata else json.dumps(
-            {"channel_id": channel_id, "ts": ts, "current_image_urls": current_image_urls}
+            {"channel_id": channel_id, "ts": ts, "current_image_urls": current_image_urls, "post_id": post_id}
         ),
         "title": {"type": "plain_text", "text": "Edit Multi-Platform Post"},
         "submit": {"type": "plain_text", "text": "Submit"},
@@ -201,12 +201,12 @@ def open_edit_modal(
 
 
 def update_edit_modal(
-    view_id: str, posts: dict, channel_id: str, ts: str, image_urls: List[str]
+    view_id: str, posts: dict, channel_id: str, ts: str, post_id: str, image_urls: List[str]
 ) -> None:
     """Refreshes an open modal with updated image previews and all post styles."""
     payload = {
         "view_id": view_id,
-        "view": _build_modal_view(posts, channel_id, ts, image_urls),
+        "view": _build_modal_view(posts, channel_id, ts, post_id, image_urls),
     }
     res_data = slack_client.post("views.update", payload)
     logger.info(f"Modal Update Response: {res_data}")

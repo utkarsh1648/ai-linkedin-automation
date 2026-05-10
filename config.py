@@ -5,52 +5,52 @@ from dotenv import load_dotenv
 class Config:
     def __init__(self):
         load_dotenv(override=True)
-        self.NEWS_API_KEY = os.getenv("NEWS_API_KEY", "").strip().strip('"')
-        self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"')
-        self.SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN", "").strip().strip('"')
-        self.SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID", "").strip().strip('"')
-        self.BUFFER_TOKEN = os.getenv("BUFFER_TOKEN", "").strip().strip('"')
-        self.CHANNEL_ID = os.getenv("CHANNEL_ID", "").strip().strip('"')
-        self.BUFFER_CHANNELS_RAW = os.getenv("BUFFER_CHANNELS", "").strip().strip('"')
+        
+        def get_env(key, default=""):
+            val = os.getenv(key, "").strip().strip('"')
+            return val if val else default
+
+        self.NEWS_API_KEY = get_env("NEWS_API_KEY")
+        self.GEMINI_API_KEY = get_env("GEMINI_API_KEY")
+        self.SLACK_BOT_TOKEN = get_env("SLACK_BOT_TOKEN")
+        self.SLACK_CHANNEL_ID = get_env("SLACK_CHANNEL_ID")
+        self.BUFFER_TOKEN = get_env("BUFFER_TOKEN")
+        self.CHANNEL_ID = get_env("CHANNEL_ID")
+        self.BUFFER_CHANNELS_RAW = get_env("BUFFER_CHANNELS")
         self.BUFFER_CHANNELS = self._parse_channels()
 
-        self.BASE_PUBLIC_URL = os.getenv("BASE_PUBLIC_URL", "https://acronymous-losingly-arianna.ngrok-free.dev").strip().strip('"')
-        self.IMGBB_API_KEY = os.getenv("IMGBB_API_KEY", "").strip().strip('"')
+        self.BASE_PUBLIC_URL = get_env("BASE_PUBLIC_URL", "https://acronymous-losingly-arianna.ngrok-free.dev")
+        self.IMGBB_API_KEY = get_env("IMGBB_API_KEY")
         self.MEDIA_DIR = "media"
 
         # Storage & Database
-        self.DATABASE_URL = os.getenv("DATABASE_URL", "").strip().strip('"')
+        self.DATABASE_URL = get_env("DATABASE_URL")
         # Drivers: 'json' or 'postgres'
-        self.STORAGE_DRIVER = os.getenv("STORAGE_DRIVER", "json").strip().lower()
+        self.STORAGE_DRIVER = get_env("STORAGE_DRIVER", "json").lower()
 
         # X (Twitter) Trends integration
-        self.X_API_KEY = os.getenv("X_API_KEY", "").strip()
-        self.ENABLE_X_API = os.getenv("ENABLE_X_API", "true").lower() == "true"
+        self.X_API_KEY = get_env("X_API_KEY")
+        self.ENABLE_X_API = get_env("ENABLE_X_API", "true").lower() == "true"
 
         # Email newsletter service
         # EMAIL_DRIVER: "resend" (default) or "smtp"
-        self.EMAIL_DRIVER = os.getenv("EMAIL_DRIVER", "resend").lower().strip()
-        self.EMAIL_SENDER = os.getenv("EMAIL_SENDER", "").strip()
-        self.EMAIL_SENDER_NAME = os.getenv("EMAIL_SENDER_NAME", "AI News Digest").strip()
+        self.EMAIL_DRIVER = get_env("EMAIL_DRIVER", "resend").lower()
+        self.EMAIL_SENDER = get_env("EMAIL_SENDER")
+        self.EMAIL_SENDER_NAME = get_env("EMAIL_SENDER_NAME", "AI News Digest")
 
         # Resend driver (https://resend.com) — set RESEND_API_KEY
-        self.RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+        self.RESEND_API_KEY = get_env("RESEND_API_KEY")
 
         # SMTP driver (e.g. Gmail) — set SMTP_HOST / PORT / USER / PASSWORD
-        self.SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com").strip()
-        self.SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-        self.SMTP_USER = os.getenv("SMTP_USER", "").strip()
-        self.SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
-
-        # Storage & Database
-        # STORAGE_DRIVER: "json" (default) or "postgres"
-        self.STORAGE_DRIVER = os.getenv("STORAGE_DRIVER", "json").strip().lower()
-        self.DATABASE_URL = os.getenv("DATABASE_URL", "").strip().strip('"')
+        self.SMTP_HOST = get_env("SMTP_HOST", "smtp.gmail.com")
+        self.SMTP_PORT = int(get_env("SMTP_PORT", "587"))
+        self.SMTP_USER = get_env("SMTP_USER")
+        self.SMTP_PASSWORD = get_env("SMTP_PASSWORD")
 
         # JSON driver — path to the subscribers JSON file
-        self.SUBSCRIBERS_JSON_PATH = os.getenv("SUBSCRIBERS_JSON_PATH", "subscribers.json").strip()
+        self.SUBSCRIBERS_JSON_PATH = get_env("SUBSCRIBERS_JSON_PATH", "subscribers.json")
         # SQLite driver (optional)
-        self.SUBSCRIBERS_DB_PATH = os.getenv("SUBSCRIBERS_DB_PATH", "subscribers.db").strip()
+        self.SUBSCRIBERS_DB_PATH = get_env("SUBSCRIBERS_DB_PATH", "subscribers.db")
 
         self.NEWS_API_QUERIES = [
             "Artificial Intelligence OR AI",
@@ -86,6 +86,9 @@ class Config:
         if not channels and self.CHANNEL_ID:
             channels[self.CHANNEL_ID] = {"style": "linkedin", "name": "LinkedIn"}
             
+        from utils.logger import get_logger
+        logger = get_logger("config")
+        logger.info(f"Config: Parsed {len(channels)} Buffer channels.")
         return channels
 
 
