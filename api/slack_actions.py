@@ -77,6 +77,7 @@ async def _task_open_edit_modal(view_id: str, post_id: str, channel_id: str, ts:
         posts,
         channel_id,
         ts,
+        post_id,
         image_urls
     )
 
@@ -111,15 +112,37 @@ def _task_handle_modal_submission(
     # But for simplicity, we'll just handle new uploads here.
     
     from services.visual_service import VisualService
+    from utils.file_handler import upload_to_imgbb
     import os
     visual_service = VisualService()
 
     if file_urls:
         for furl in file_urls:
-            public_url = download_slack_file(furl, config.SLACK_BOT_TOKEN, base_url)
-            if public_url:
-                if public_url not in final_images:
-                    final_images.append(public_url)
+            # 1. Download to local first for processing
+            from utils.file_handler import download_slack_file_local
+            local_path = download_slack_file_local(furl, config.SLACK_BOT_TOKEN)
+            
+            if local_path:
+                final_path = local_path
+                # 2. Universal Square: Ensure all uploads are Instagram-friendly
+                if not visual_service.is_square(local_path):
+                    logger.info(f"Squaring non-square upload: {local_path}")
+                    final_path = visual_service.square_image(local_path)
+                
+                # 3. Upload the (potentially squared) file to ImgBB
+                public_url = upload_to_imgbb(final_path)
+                
+                if public_url:
+                    if public_url not in final_images:
+                        final_images.append(public_url)
+                
+                # Cleanup local temp files
+                try:
+                    os.remove(local_path)
+                    if final_path != local_path and os.path.exists(final_path):
+                        os.remove(final_path)
+                except:
+                    pass
     
     # Also handle the manual_url if it's not already in the list
     if manual_url and manual_url not in final_images:
@@ -219,9 +242,16 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
             
             # The value is now the pending post ID (except for remove_image_direct)
             post_id = action_data.get("value")
+            
+            # --- CRITICAL SAFETY CHECK ---
+            # If we detect that post_id is actually raw JSON (Ghost-ID bug), block it early.
+            if post_id and (post_id.strip().startswith("{") or post_id.strip().startswith("[")):
+                logger.error(f"⚠️ CORRUPT DATA DETECTED: post_id is JSON instead of UUID! Value: {post_id}")
+                return PlainTextResponse("Error: Session data corruption. Please run the pipeline again.")
+
             stored_data = None
             
-            if action_id not in ["remove_image_direct", "select_channels"]:
+            if action_id not in ["remove_image_direct", "select_channels", "toggle_images"]:
                 stored_data = pending_post_service.get_post(post_id)
                 if not stored_data:
                     logger.warning(f"No stored data found for post_id: {post_id}")
@@ -256,19 +286,19 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
                 posts = stored_data["posts"]
                 image_urls = stored_data.get("image_urls") or []
                 
-                state = payload.get("state", {}).get("values", {})
-                selected_options = state.get("channel_selection", {}).get("select_channels", {}).get("selected_options", [])
-                
-                if not selected_options:
-                    return PlainTextResponse("Please select at least one channel.")
-
-                # Map selected IDs to styles
+                # Map selected IDs to styles (or use all if selection was skipped)
                 all_channels = config.BUFFER_CHANNELS
                 selected_map = {}
-                for opt in selected_options:
-                    cid = opt["value"]
-                    channel_info = all_channels.get(cid, {})
-                    selected_map[cid] = channel_info.get("style", "professional")
+                
+                if selected_options:
+                    for opt in selected_options:
+                        cid = opt["value"]
+                        channel_info = all_channels.get(cid, {})
+                        selected_map[cid] = channel_info.get("style", "professional")
+                else:
+                    # Fallback: Use ALL configured channels (One-click approval)
+                    for cid, channel_info in all_channels.items():
+                        selected_map[cid] = channel_info.get("style", "professional")
                 
                 logger.info(f"Post approved by {user} for {len(selected_map)} channels")
                 background_tasks.add_task(_task_broadcast_to_buffer, posts, selected_map, image_urls)
@@ -327,6 +357,7 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
                 
                 channel_id = private_metadata.get("channel_id")
                 ts = private_metadata.get("ts")
+                post_id = private_metadata.get("post_id")
                 current_image_urls = private_metadata.get("current_image_urls", [])
                 
                 # 1. Remove the image from the list
@@ -341,7 +372,7 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
                         if input_id in values:
                             current_posts[style] = values[input_id]["value"]
                 
-                update_edit_modal(view_id, current_posts, channel_id, ts, new_image_urls)
+                update_edit_modal(view_id, current_posts, channel_id, ts, post_id, new_image_urls)
                 return PlainTextResponse("OK")
 
             # Handle Edit (Restore)
