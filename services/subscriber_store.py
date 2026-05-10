@@ -362,7 +362,12 @@ class PostgreSQLSubscriberStore(BaseSubscriberStore):
     @contextmanager
     def _conn(self):
         import psycopg2
-        conn = psycopg2.connect(config.DATABASE_URL)
+        # Ensure the URL is in the correct format for psycopg2 (postgres:// -> postgresql://)
+        db_url = config.DATABASE_URL
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+            
+        conn = psycopg2.connect(db_url)
         try:
             yield conn
             conn.commit()

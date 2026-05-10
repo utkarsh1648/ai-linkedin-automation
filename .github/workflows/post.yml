@@ -35,6 +35,8 @@ jobs:
           X_API_KEY: ${{ secrets.X_API_KEY }}
           ENABLE_X_API: ${{ secrets.ENABLE_X_API }}
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          STORAGE_DRIVER: ${{ secrets.STORAGE_DRIVER }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # Email newsletter
           EMAIL_DRIVER: ${{ secrets.EMAIL_DRIVER }}
           EMAIL_SENDER: ${{ vars.EMAIL_SENDER }}
