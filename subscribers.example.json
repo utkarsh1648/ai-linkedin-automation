@@ -1,0 +1,34 @@
+[
+  {
+    "email": "jane.doe@example.com",
+    "name": "Jane Doe",
+    "contact": "+91-9876543210",
+    "unsubscribe_token": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "subscribed_at": "2026-04-22T10:00:00+00:00",
+    "is_active": false
+  },
+  {
+    "email": "john.smith@example.com",
+    "name": "John Smith",
+    "contact": "+1-555-0100",
+    "unsubscribe_token": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "subscribed_at": "2026-04-22T11:00:00+00:00",
+    "is_active": false
+  },
+  {
+    "email": "removed.user@example.com",
+    "name": "Removed User",
+    "contact": "",
+    "unsubscribe_token": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+    "subscribed_at": "2026-04-20T08:00:00+00:00",
+    "is_active": false
+  },
+  {
+    "email": "kuber.utkarsh@gmail.com",
+    "name": "My User",
+    "contact": "+91-9999999999",
+    "unsubscribe_token": "0b4a4c95-9ea9-4016-915a-7240b37b0e1d",
+    "subscribed_at": "2026-04-27T12:06:54.840033+00:00",
+    "is_active": true
+  }
+]

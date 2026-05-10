@@ -2,3 +2,11 @@ __pycache__/
 *.pyc
 .env
 venv/
+
+# Subscriber data — contains PII (emails, names, contact numbers)
+# Use subscribers.example.json as a schema reference instead
+subscribers.json
+
+# Generated output files
+output_newsletter.html
+subscribers.db

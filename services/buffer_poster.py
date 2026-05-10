@@ -1,51 +1,60 @@
 import requests
-import os
-from dotenv import load_dotenv
+from config import config
+from utils.logger import get_logger
+from typing import List
 
-load_dotenv()
+logger = get_logger(__name__)
 
-
-def post_to_linkedin(text):
-
+def post_to_linkedin(text: str, image_urls: List[str] = None) -> dict:
     url = "https://api.buffer.com"
-
-    token = os.getenv("BUFFER_TOKEN")
-    channel_id = os.getenv("CHANNEL_ID")
-
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": f"Bearer {config.BUFFER_TOKEN}",
         "Content-Type": "application/json"
     }
 
-    mutation = """
-    mutation CreatePost($text: String!, $channelId: ChannelId!) {
-      createPost(input: {
+    assets_block = ""
+    if image_urls:
+        images_str = ", ".join([f'{{url: "{url}"}}' for url in image_urls])
+        assets_block = f'assets: {{ images: [ {images_str} ] }}'
+
+    mutation = f"""
+    mutation CreatePost($text: String!, $channelId: ChannelId!) {{
+      createPost(input: {{
         text: $text
         channelId: $channelId
+        {assets_block}
         schedulingType: automatic
         mode: shareNow
-      }) {
-        ... on PostActionSuccess {
-          post {
+      }}) {{
+        ... on PostActionSuccess {{
+          post {{
             id
             text
-          }
-        }
-        ... on MutationError {
+          }}
+        }}
+        ... on MutationError {{
           message
-        }
-      }
-    }
+        }}
+      }}
+    }}
     """
 
+    variables = {
+        "text": text,
+        "channelId": config.CHANNEL_ID
+    }
+        
     payload = {
         "query": mutation,
-        "variables": {
-            "text": text,
-            "channelId": channel_id
-        }
+        "variables": variables
     }
 
-    response = requests.post(url, json=payload, headers=headers)
-
-    return response.json()
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        # Buffer GraphQL often returns HTTP 200 with an "errors" array inside the JSON if things fail
+        data = response.json()
+        logger.info(f"Buffer GraphQL Response: {data}")
+        return data
+    except Exception as e:
+        logger.error(f"Failed to post to buffer/linkedin: {e}")
+        return {"error": str(e)}

@@ -1,44 +1,28 @@
-import os
-import requests
-from dotenv import load_dotenv
+from config import config
+from utils.logger import get_logger
+from services.slack_client import slack_client
+from services.slack_blocks import build_post_message
 
-load_dotenv()
+logger = get_logger(__name__)
 
-def send_slack_notification(message):
-    webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+
+def send_slack_notification(message: str) -> dict:
+    """Posts an AI-generated LinkedIn post to the approval Slack channel."""
+    blocks = build_post_message(
+        text=message,
+        image_urls=[],
+        header="*AI Generated LinkedIn Post*",
+    )
     payload = {
-        "blocks": [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*AI Generated LinkedIn Post*\n\n{message}"
-                }
-            },
-            {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "Approve"},
-                        "style": "primary",
-                        "value": "approve",
-                        "action_id": "approve_post"
-                    },
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "Reject"},
-                        "style": "danger",
-                        "value": "reject",
-                        "action_id": "reject_post"
-                    }
-                ]
-            }
-        ]
+        "channel": config.SLACK_CHANNEL_ID,
+        "text": "AI Generated LinkedIn Post",
+        "blocks": blocks,
     }
-     
-    response = requests.post(webhook_url, json=payload)
-    if response.status_code != 200:
-        raise ValueError(f"Request to Slack returned an error {response.status_code}, the response is:\n{response.text}")
 
-    return response
+    data = slack_client.post("chat.postMessage", payload)
+
+    if not data.get("ok"):
+        logger.error(f"Slack API Error: {data}")
+        return {"error": data}
+
+    return {"channel": data["channel"], "ts": data["ts"]}
