@@ -7,6 +7,13 @@ from typing import Dict, Optional, Protocol
 from config import config
 from utils.logger import get_logger
 
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+except ImportError:
+    psycopg2 = None
+    RealDictCursor = None
+
 logger = get_logger(__name__)
 
 class PendingPostStore(Protocol):
@@ -73,8 +80,9 @@ class PostgresPendingPostStore:
         self._init_db()
 
     def _get_connection(self):
-        import psycopg2
-        from psycopg2.extras import RealDictCursor
+        if not psycopg2:
+            raise ImportError("psycopg2-binary is not installed.")
+            
         # Ensure the URL is in the correct format for psycopg2 (postgres:// -> postgresql://)
         db_url = self.db_url
         if db_url.startswith("postgres://"):

@@ -290,6 +290,10 @@ async def slack_actions(request: Request, background_tasks: BackgroundTasks):
                 all_channels = config.BUFFER_CHANNELS
                 selected_map = {}
                 
+                # Extract selected channels from the Slack state
+                state_values = payload.get("state", {}).get("values", {})
+                selected_options = state_values.get("channel_selection", {}).get("select_channels", {}).get("selected_options", [])
+                
                 if selected_options:
                     for opt in selected_options:
                         cid = opt["value"]
