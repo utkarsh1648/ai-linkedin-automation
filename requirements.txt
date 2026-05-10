@@ -5,8 +5,8 @@ python-dotenv==1.0.1
 requests==2.31.0
 httpx==0.27.0
 
-# AI & Content
-google-generativeai==0.4.1
+# AI & Content (New Unified SDK)
+google-genai==0.3.0
 beautifulsoup4==4.12.3
 feedparser==6.0.10
 
