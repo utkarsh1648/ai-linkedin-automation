@@ -28,6 +28,11 @@ from typing import List
 from config import config
 from utils.logger import get_logger
 
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None
+
 logger = get_logger(__name__)
 
 
@@ -352,16 +357,13 @@ class PostgreSQLSubscriberStore(BaseSubscriberStore):
     def __init__(self):
         if not config.DATABASE_URL:
             raise ValueError("DATABASE_URL is required for the postgres driver.")
-        try:
-            import psycopg2  # noqa
-        except ImportError:
+        if not psycopg2:
             raise ImportError("Run: pip install psycopg2-binary")
 
     from contextlib import contextmanager
 
     @contextmanager
     def _conn(self):
-        import psycopg2
         # Ensure the URL is in the correct format for psycopg2 (postgres:// -> postgresql://)
         db_url = config.DATABASE_URL
         if db_url.startswith("postgres://"):

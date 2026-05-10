@@ -98,6 +98,10 @@ EMAIL_SENDER_NAME="AI News Digest"
     *   Set `STORAGE_DRIVER=postgres`.
     *   Render will automatically provide the `DATABASE_URL`.
 4.  **Persistent Disk**: For better file handling, add a "Disk" in Render and mount it to `/media`.
+5.  **Keep-Alive (Crucial)**: 
+    *   Render Free Tier "sleeps" after 15 minutes of inactivity. This will cause Slack buttons to fail.
+    *   **Solution**: Use a service like **UptimeRobot** to ping `https://your-app.onrender.com/health` every 10 minutes.
+    *   **Alternative**: Use the provided `.github/workflows/keep_alive.yml` (update the URL inside the file) to keep it awake for free.
 
 ---
 

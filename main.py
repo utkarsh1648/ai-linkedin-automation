@@ -17,11 +17,15 @@ logger = get_logger(__name__)
 
 app = FastAPI(title="AI LinkedIn Automation")
 app.include_router(slack_router)
-app.include_router(subscribers_router)
+app.include_router(subscribers_router, prefix="/api")
 
 # Mount local media directory to serve uploaded images publicly
 os.makedirs(config.MEDIA_DIR, exist_ok=True)
 app.mount(f"/{config.MEDIA_DIR}", StaticFiles(directory=config.MEDIA_DIR), name="media")
+@app.get("/health")
+async def health_check():
+    """Lightweight endpoint for keep-alive services and monitoring."""
+    return {"status": "healthy", "service": "ai-linkedin-automation"}
 
 @app.on_event("startup")
 async def startup_event():
@@ -123,7 +127,7 @@ def _dispatch_newsletter(intro_text: str, articles: list) -> None:
     # Build per-recipient payloads with personalised greeting + unsubscribe URL
     recipients = []
     for sub in subscribers:
-        unsubscribe_url = f"{config.BASE_PUBLIC_URL}/unsubscribe?token={sub['unsubscribe_token']}"
+        unsubscribe_url = f"{config.BASE_PUBLIC_URL}/api/unsubscribe?token={sub['unsubscribe_token']}"
         recipients.append({
             "email": sub["email"],
             "name": sub.get("name", ""),

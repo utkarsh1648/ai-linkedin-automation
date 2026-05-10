@@ -55,6 +55,7 @@ This bot is optimized to run on Render's **Free Tier** without requiring a paid 
 1.  **Storage**: Use the **Postgres** driver (`STORAGE_DRIVER=postgres`) with a Render Free PostgreSQL instance.
 2.  **Images**: Set `IMGBB_API_KEY` to ensure all images are hosted in the cloud.
 3.  **Newsletter**: Use the **Resend** driver for reliable email delivery.
+4.  **Keep-Alive**: Render's free tier "sleeps" after 15 mins of inactivity. Use a service like **UptimeRobot** or the included GitHub Action to ping your `/health` endpoint every 10 mins to keep it awake for instant Slack button responses.
 
 ---
 
